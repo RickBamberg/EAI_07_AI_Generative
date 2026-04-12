@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assistente Técnico IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg          : #0e0f11;
+    --surface     : #16181c;
+    --surface-2   : #1e2127;
+    --border      : #2a2d35;
+    --accent      : #4ade80;
+    --accent-dim  : #166534;
+    --text        : #e2e8f0;
+    --text-muted  : #64748b;
+    --text-dim    : #94a3b8;
+    --user-bg     : #1a2744;
+    --user-border : #2563eb;
+    --code-bg     : #0d1117;
+    --radius      : 10px;
+    --font-sans   : 'IBM Plex Sans', sans-serif;
+    --font-mono   : 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .header-icon {
+    width: 34px;
+    height: 34px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  .header-status {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Layout principal ────────────────────────────────────── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* ── Área de chat ────────────────────────────────────────── */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-right: 1px solid var(--border);
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ── Mensagens ───────────────────────────────────────────── */
+  .msg {
+    display: flex;
+    gap: 12px;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .msg.user .msg-avatar {
+    background: var(--user-border);
+  }
+
+  .msg.assistant .msg-avatar {
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .msg-body { flex: 1; min-width: 0; }
+
+  .msg-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .msg-content {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  .msg.user .msg-content {
+    background: var(--user-bg);
+    border: 1px solid var(--user-border);
+    border-radius: var(--radius);
+    padding: 11px 14px;
+    display: inline-block;
+    max-width: 85%;
+  }
+
+  /* Markdown dentro das respostas */
+  .msg.assistant .msg-content p { margin-bottom: 10px; }
+  .msg.assistant .msg-content p:last-child { margin-bottom: 0; }
+  .msg.assistant .msg-content ul,
+  .msg.assistant .msg-content ol { padding-left: 20px; margin-bottom: 10px; }
+  .msg.assistant .msg-content li { margin-bottom: 4px; }
+  .msg.assistant .msg-content code {
+    font-family: var(--font-mono);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--accent);
+  }
+  .msg.assistant .msg-content pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  .msg.assistant .msg-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .msg.assistant .msg-content strong { color: #fff; font-weight: 600; }
+  .msg.assistant .msg-content h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 12px 0 6px;
+    color: var(--accent);
+  }
+
+  /* ── Typing indicator ────────────────────────────────────── */
+  .typing {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    padding: 8px 0;
+  }
+
+  .typing span {
+    width: 6px;
+    height: 6px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40%           { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* ── Input ───────────────────────────────────────────────── */
+  .input-area {
+    padding: 16px 24px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  textarea {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    padding: 11px 14px;
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+    max-height: 120px;
+    min-height: 44px;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--text-muted); }
+
+  .btn-send {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+
+  .btn-send:hover { opacity: 0.85; }
+  .btn-send:active { transform: scale(0.95); }
+  .btn-send:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── Painel lateral ──────────────────────────────────────── */
+  .sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .sidebar-title {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .chunk-count {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sidebar-content::-webkit-scrollbar { width: 3px; }
+  .sidebar-content::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ── Cards de fonte ──────────────────────────────────────── */
+  .fonte-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 13px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .fonte-card:hover {
+    border-color: var(--accent-dim);
+    background: #1a1f26;
+  }
+
+  .fonte-card.expanded { border-color: var(--accent-dim); }
+
+  .fonte-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+
+  .fonte-modulo {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .fonte-score {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .fonte-titulo {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+
+  .fonte-trecho {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    display: none;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .fonte-card.expanded .fonte-trecho { display: block; }
+
+  /* ── Empty state ─────────────────────────────────────────── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 20px;
+  }
+
+  .empty-icon { font-size: 28px; opacity: 0.4; }
+
+  .empty-text {
+    font-size: 12px;
+    line-height: 1.6;
+    opacity: 0.6;
+  }
+
+  /* ── Btn limpar ──────────────────────────────────────────── */
+  .btn-limpar {
+    margin: 10px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .btn-limpar:hover { border-color: #ef4444; color: #ef4444; }
+
+  /* ── Welcome message ─────────────────────────────────────── */
+  .welcome {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+
+  .welcome-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .welcome-sub {
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 420px;
+    margin: 0 auto 20px;
+  }
+
+  .quick-questions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .quick-q {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .quick-q:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">🤖</div>
+  <div>
+    <div class="header-title">Assistente Técnico IA</div>
+    <div class="header-sub">EAI_01 → EAI_08 · RAG Semântico</div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot"></div>
+    <span id="rag-status">carregando...</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Chat -->
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-title">Como posso ajudar?</div>
+        <div class="welcome-sub">
+          Faço perguntas sobre qualquer módulo do curso — algoritmos,
+          implementações, conceitos, código ou decisões de arquitetura.
+        </div>
+        <div class="quick-questions">
+          <button class="quick-q" onclick="enviarRapido(this)">O que é RAG?</button>
+          <button class="quick-q" onclick="enviarRapido(this)">Como funciona o BM25?</button>
+          <button class="quick-q" onclick="enviarRapido(this)">O que é o padrão ReAct?</button>
+          <button class="quick-q" onclick="enviarRapido(this)">Qual foi o modelo de visão no EAI_03?</button>
+          <button class="quick-q" onclick="enviarRapido(this)">Como funciona o tool_runner?</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <textarea
+        id="input"
+        placeholder="Pergunte sobre o curso..."
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="btn-send" id="btn-send" onclick="enviar()">↑</button>
+    </div>
+  </div>
+
+  <!-- Painel lateral -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Fontes RAG</span>
+      <span class="chunk-count" id="chunk-count">—</span>
+    </div>
+    <div class="sidebar-content" id="sidebar-content">
+      <div class="empty-state">
+        <div class="empty-icon">◈</div>
+        <div class="empty-text">
+          Os chunks recuperados pelo<br>RAG aparecem aqui
+        </div>
+      </div>
+    </div>
+    <button class="btn-limpar" onclick="limparHistorico()">↺ Limpar histórico</button>
+  </div>
+
+</div>
+
+<script>
+  const messagesEl  = document.getElementById('messages');
+  const inputEl     = document.getElementById('input');
+  const btnSend     = document.getElementById('btn-send');
+  const sidebarEl   = document.getElementById('sidebar-content');
+  const chunkCount  = document.getElementById('chunk-count');
+  const ragStatus   = document.getElementById('rag-status');
+
+  // ── Status inicial ────────────────────────────────────────
+  fetch('/status')
+    .then(r => r.json())
+    .then(d => {
+      ragStatus.textContent = d.rag === 'carregado'
+        ? `${d.chunks} chunks`
+        : 'índice indisponível';
+    })
+    .catch(() => { ragStatus.textContent = 'offline'; });
+
+  // ── Envio ─────────────────────────────────────────────────
+  function enviar() {
+    const texto = inputEl.value.trim();
+    if (!texto) return;
+    inputEl.value = '';
+    autoResize(inputEl);
+    processarPergunta(texto);
+  }
+
+  function enviarRapido(btn) {
+    processarPergunta(btn.textContent);
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      enviar();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  // ── Processar pergunta ────────────────────────────────────
+  function processarPergunta(texto) {
+    // Remove welcome
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    // Adiciona mensagem do usuário
+    adicionarMensagem('user', texto);
+
+    // Typing indicator
+    const typingId = 'typing-' + Date.now();
+    adicionarTyping(typingId);
+
+    btnSend.disabled = true;
+
+    fetch('/chat', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ pergunta: texto }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      removerTyping(typingId);
+      btnSend.disabled = false;
+
+      if (data.erro) {
+        adicionarMensagem('assistant', `⚠️ Erro: ${data.erro}`);
+        return;
+      }
+
+      adicionarMensagem('assistant', data.resposta, data.timestamp);
+      atualizarSidebar(data.fontes);
+    })
+    .catch(err => {
+      removerTyping(typingId);
+      btnSend.disabled = false;
+      adicionarMensagem('assistant', `⚠️ Erro de conexão: ${err.message}`);
+    });
+  }
+
+  // ── Mensagens ─────────────────────────────────────────────
+  function adicionarMensagem(role, conteudo, ts) {
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+
+    const avatar = role === 'user' ? '👤' : '🤖';
+    const nome   = role === 'user' ? 'você' : 'assistente';
+    const hora   = ts || new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+    const textoHtml = role === 'assistant'
+      ? renderMarkdown(conteudo)
+      : escapeHtml(conteudo);
+
+    div.innerHTML = `
+      <div class="msg-avatar">${avatar}</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span>${nome}</span>
+          <span>${hora}</span>
+        </div>
+        <div class="msg-content">${textoHtml}</div>
+      </div>
+    `;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function adicionarTyping(id) {
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    div.id = id;
+    div.innerHTML = `
+      <div class="msg-avatar">🤖</div>
+      <div class="msg-body">
+        <div class="msg-meta"><span>assistente</span></div>
+        <div class="msg-content">
+          <div class="typing"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    `;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removerTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  // ── Sidebar ───────────────────────────────────────────────
+  function atualizarSidebar(fontes) {
+    if (!fontes || fontes.length === 0) {
+      sidebarEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">◈</div>
+          <div class="empty-text">Nenhum chunk recuperado</div>
+        </div>`;
+      chunkCount.textContent = '0';
+      return;
+    }
+
+    chunkCount.textContent = `${fontes.length} chunks`;
+
+    sidebarEl.innerHTML = fontes.map((f, i) => `
+      <div class="fonte-card" onclick="toggleFonte(this)">
+        <div class="fonte-header">
+          <span class="fonte-modulo">${abreviarModulo(f.modulo)}</span>
+          <span class="fonte-score">${(f.score * 100).toFixed(0)}%</span>
+        </div>
+        <div class="fonte-titulo">${escapeHtml(f.titulo)}</div>
+        <div class="fonte-trecho">${escapeHtml(f.trecho)}</div>
+      </div>
+    `).join('');
+  }
+
+  function toggleFonte(card) {
+    card.classList.toggle('expanded');
+  }
+
+  function abreviarModulo(modulo) {
+    // EAI_07_AI_Generative → EAI_07
+    const m = modulo.match(/EAI_\d+/);
+    return m ? m[0] : modulo.substring(0, 10);
+  }
+
+  // ── Limpar histórico ──────────────────────────────────────
+  function limparHistorico() {
+    if (!confirm('Apagar o histórico de conversas?')) return;
+    fetch('/limpar', { method: 'POST' })
+      .then(r => r.json())
+      .then(() => {
+        messagesEl.innerHTML = `
+          <div class="welcome" id="welcome">
+            <div class="welcome-title">Histórico apagado</div>
+            <div class="welcome-sub">Pode começar uma nova conversa.</div>
+          </div>`;
+        sidebarEl.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">◈</div>
+            <div class="empty-text">Os chunks recuperados aparecem aqui</div>
+          </div>`;
+        chunkCount.textContent = '—';
+      });
+  }
+
+  // ── Helpers ───────────────────────────────────────────────
+  function escapeHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderMarkdown(text) {
+    // Blocos de código
+    text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code>${escapeHtml(code.trim())}</code></pre>`
+    );
+    // Inline code
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Bold
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Headers
+    text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    // Listas
+    text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
+    text = text.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
+    // Parágrafos
+    text = text.split('\n\n').map(p =>
+      p.startsWith('<') ? p : `<p>${p.replace(/\n/g, '<br>')}</p>`
+    ).join('');
+    return text;
+  }
+</script>
+</body>
+</html>
