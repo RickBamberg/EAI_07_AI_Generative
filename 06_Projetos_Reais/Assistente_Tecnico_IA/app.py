@@ -11,7 +11,7 @@ Rotas:
 """
 
 from flask import Flask, render_template, request, jsonify
-from assistente import responder, limpar_historico, _get_indice, _pronto
+from v3.assistente import responder, limpar_historico, _get_indice, _pronto
 
 app = Flask(__name__)
 

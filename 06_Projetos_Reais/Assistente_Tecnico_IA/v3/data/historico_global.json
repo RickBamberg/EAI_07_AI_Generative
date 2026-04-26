@@ -1,0 +1,22 @@
+[
+  {
+    "role": "user",
+    "content": "Qual projeto de deep learning classificou obras de arte?",
+    "timestamp": "11:14"
+  },
+  {
+    "role": "assistant",
+    "content": "O projeto que classificou obras de arte está no **EAI_03 — Deep Learning** e utilizou **Transfer Learning** com a arquitetura **MobileNetV2** (pré-treinada no ImageNet) com fine-tuning.\n\n**Detalhes técnicos do projeto:**\n- **Dataset**: WikiArt - Painter by Numbers (6 a 7 estilos artísticos)\n- **Arquitetura**: MobileNetV2 + Fine-tuning\n- **Resultado**: ~65% de accuracy (considerado esperado para um problema complexo de classificação de estilos)\n- **Deployment**: Flask web app com upload de imagens\n- **Diferencial**: Análise profunda de erros e generalização\n\n**Conceitos aplicados no projeto:**\n- Transfer Learning (congelamento de camadas + fine-tuning)\n- Grad-CAM para visualização de features aprendidas\n- Análise por artista específico\n- Clustering de estilos similares",
+    "timestamp": "11:14"
+  },
+  {
+    "role": "user",
+    "content": "Qual foi a acurácia desse projeto?",
+    "timestamp": "11:15"
+  },
+  {
+    "role": "assistant",
+    "content": "A acurácia do projeto foi de **~65%**.\n\nConforme o resumo executivo do EAI_03: *\"Resultado: ~65% accuracy (esperado para problema complexo)\"*.\n\nEsse valor é considerado competitivo para a tarefa, pois:\n- A classificação de estilos artísticos é **subjetiva** e visualmente complexa\n- Estilos como Impressionismo e Pós-Impressionismo têm **sobreposição visual**\n- O modelo trabalha apenas com informação visual, **sem contexto histórico** (artista, período, técnica)",
+    "timestamp": "11:15"
+  }
+]

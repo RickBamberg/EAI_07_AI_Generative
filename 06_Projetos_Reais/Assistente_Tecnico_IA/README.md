@@ -8,21 +8,53 @@ EAI_01 a EAI_08 usando RAG semântico sobre os `AGENT_CONTEXT.md` do curso.
 
 ---
 
+## Versões disponíveis
+
+O projeto possui três versões de backend RAG, todas com a mesma interface Flask e o mesmo `app.py`:
+
+| Versão | Backend | Banco | Chunks | Query Expansion |
+|---|---|---|---|---|
+| `v1` | FAISS + pkl | `data/cache/indice_rag.pkl` | 1.553 | Não |
+| `v2` | ChromaDB puro | `data/chroma_db/` | 1.763 | Sim |
+| `v3` | LangChain 1.x | `data/chroma_db/` (mesmo da v2) | 1.763 | Sim |
+
+> **v3 não requer reindexação** se a v2 já foi executada — o banco é compartilhado.
+
+---
+
 ## Pré-requisitos
 
 1. Ambiente `eai07` ativo
-2. **Índice RAG gerado** — execute o `03_RAG/03_rag_basico.ipynb` até o final.
-   O cache deve existir em `data/cache/indice_rag.pkl`
-3. Flask instalado:
+2. **Índice RAG gerado** para a versão escolhida:
+   - v1 → execute `03_RAG/03_rag_basico.ipynb` → gera `data/cache/indice_rag.pkl`
+   - v2 → execute `03_RAG/04_rag_avancado_chromadb.ipynb` → gera `data/chroma_db/`
+   - v3 → mesmo banco da v2 (ou execute `03_RAG/04_rag_avancado_langchain.ipynb`)
+3. Dependências instaladas:
 
 ```bash
 conda activate eai07
 pip install flask
+
+# v2 — ChromaDB puro
+pip install chromadb
+
+# v3 — LangChain 1.x
+pip install langchain langchain-community langchain-chroma langchain-openai langchain-huggingface
 ```
 
 ---
 
 ## Como executar
+
+O `app.py` fica na raiz do projeto. Antes de iniciar, edite a linha de import
+para apontar para a versão desejada:
+
+```python
+# app.py — escolha uma linha e comente as outras:
+from v1.assistente import responder, limpar_historico, _get_indice, _pronto  # FAISS + pkl
+from v2.assistente import responder, limpar_historico, _get_indice, _pronto  # ChromaDB
+from v3.assistente import responder, limpar_historico, _get_indice, _pronto  # LangChain
+```
 
 ```bash
 cd EAI_07_AI_Generative/06_Projetos_Reais/Assistente_Tecnico_IA
@@ -37,12 +69,17 @@ Acesse: **http://localhost:5000**
 
 ```
 Assistente_Tecnico_IA/
-├── app.py              ← Flask: rotas GET / e POST /chat, /limpar, /status
-├── assistente.py       ← Núcleo: RAG + memória + LLM
+├── app.py                     ← Flask: rotas / /chat /limpar /status (idêntico nas 3 versões)
 ├── templates/
-│   └── index.html      ← Interface de chat com painel de fontes
+│   └── index.html             ← Interface de chat com painel de fontes (idêntica nas 3 versões)
 ├── data/
 │   └── historico_global.json  ← Histórico persistido (criado automaticamente)
+├── v1/
+│   └── assistente.py          ← Núcleo v1: RAG com FAISS + pkl
+├── v2/
+│   └── assistente.py          ← Núcleo v2: RAG com ChromaDB puro
+├── v3/
+│   └── assistente.py          ← Núcleo v3: RAG com LangChain 1.x / LCEL
 ├── AGENT_CONTEXT.md
 └── README.md
 ```
@@ -55,19 +92,63 @@ Assistente_Tecnico_IA/
 POST /chat
     │
     ▼
-assistente.responder(pergunta)
+assistente.responder(pergunta)          ← mesma assinatura nas 3 versões
     │
-    ├── buscar_rag()         → top-5 chunks semânticos do índice FAISS
-    │                           (reutiliza data/cache/indice_rag.pkl do 03_RAG)
+    ├── _precisa_rag()                  ← perguntas gerais não usam RAG (v2 e v3)
     │
-    ├── _carregar_historico() → últimas 20 mensagens do historico_global.json
+    ├── _expandir_query()               ← query expansion com histórico (v2 e v3)
+    │     v2: openai.OpenAI().chat.completions.create()
+    │     v3: PromptTemplate | ChatOpenAI | StrOutputParser  (LCEL)
     │
-    ├── llm.chat.completions  → DeepSeek com system + histórico + contexto RAG
+    ├── buscar_rag()
+    │     v1: FAISS (indice_rag.pkl)    — 1.553 chunks, 26 arquivos
+    │     v2: ChromaDB collection.query()  — 1.763 chunks, 33 arquivos
+    │     v3: Chroma.similarity_search_with_score()  — mesmo banco da v2
     │
-    └── _salvar_historico()  → persiste turno atual
+    ├── _carregar_historico()           ← últimas 20 msgs do historico_global.json
+    │
+    ├── LLM com system + histórico + contexto RAG
+    │     v2: openai.OpenAI().chat.completions.create()
+    │     v3: ChatPromptTemplate | ChatOpenAI | StrOutputParser  (LCEL)
+    │
+    └── _salvar_historico()
     │
     └── retorna {resposta, fontes, historico, timestamp}
 ```
+
+---
+
+## O que mudou da v2 para a v3
+
+A v3 usa **LangChain 1.x** no lugar das chamadas diretas ao ChromaDB e OpenAI.
+O banco em disco, a lógica de busca e a interface pública são idênticos.
+
+| Componente | v2 (ChromaDB puro) | v3 (LangChain 1.x) |
+|---|---|---|
+| Vectorstore | `chromadb.PersistentClient` + `collection` | `Chroma(persist_directory=...)` |
+| Embeddings | `SentenceTransformer.encode()` manual | `HuggingFaceEmbeddings` (interno) |
+| LLM | `openai.OpenAI().chat.completions.create()` | `ChatOpenAI` + LCEL chains |
+| Query Expansion | chamada direta ao LLM | `PromptTemplate \| llm \| StrOutputParser` |
+| Busca | `collection.query(query_embeddings=...)` | `vs.similarity_search_with_score(query, ...)` |
+| Histórico no LLM | lista de dicts `{role, content}` | `[HumanMessage \| AIMessage]` |
+| `_get_modelo_emb()` | presente | removida (desnecessária) |
+| Banco em disco | `data/chroma_db/` | **mesmo** `data/chroma_db/` |
+
+> O `app.py` **não precisa mudar** além da linha de import — a interface pública é idêntica.
+
+---
+
+## LangChain 1.x — módulos corretos
+
+A v3 usa LangChain na versão **1.x**, que removeu os módulos legados da versão 0.x.
+Se você já conhece LangChain 0.x, atente para as mudanças:
+
+| Removido (0.x) | Correto (1.x) |
+|---|---|
+| `langchain.memory.ConversationBufferWindowMemory` | `langchain_community.chat_message_histories.ChatMessageHistory` |
+| `langchain.chains.ConversationalRetrievalChain` | LCEL: `prompt \| llm \| StrOutputParser()` |
+| `langchain.prompts` | `langchain_core.prompts` |
+| `langchain.schema` (mensagens) | `langchain_core.messages` |
 
 ---
 
@@ -78,49 +159,62 @@ assistente.responder(pergunta)
   - Clique em qualquer chunk para expandir e ver o trecho completo
 - **Perguntas rápidas** na tela inicial para começar a conversa
 - **Limpar histórico** no rodapé do painel apaga o `historico_global.json`
+- **Polling de status** — o input fica desabilitado até `_pronto=True` (carregamento em background)
 
 ---
 
 ## Caminhos — nada precisa ser copiado
 
-O `assistente.py` resolve os caminhos automaticamente a partir do próprio local:
+Cada `assistente.py` resolve os caminhos automaticamente subindo a hierarquia
+até encontrar o `shared/llm_factory.py`:
 
 ```
-EAI_07_AI_Generative/           ← _HERE.parent.parent
-├── shared/llm_factory.py       ← detectado automaticamente
-├── data/cache/indice_rag.pkl   ← índice compartilhado com o 03_RAG
+EAI_07_AI_Generative/                    ← detectado automaticamente
+├── shared/llm_factory.py
+├── data/
+│   ├── cache/indice_rag.pkl             ← v1
+│   └── chroma_db/                       ← v2 e v3 (banco compartilhado)
 └── 06_Projetos_Reais/
     └── Assistente_Tecnico_IA/
-        └── assistente.py       ← _HERE
+        ├── v1/assistente.py             ← _HERE (sobe 3 níveis)
+        ├── v2/assistente.py             ← _HERE (sobe 3 níveis)
+        └── v3/assistente.py             ← _HERE (sobe 3 níveis)
 ```
-
-Não é necessário copiar o índice nem o `shared/` — o assistente usa os arquivos
-originais do projeto diretamente.
 
 ---
 
-## ⚠️ Lembrete: reindexação ao criar novos módulos
+## Reindexação
 
-O índice `indice_rag.pkl` é um snapshot dos `AGENT_CONTEXT.md` existentes no
-momento em que o `03_rag_basico.ipynb` foi executado. Se você criar novos módulos
-(ex: EAI_09, EAI_10) com seus próprios `AGENT_CONTEXT.md`, o assistente **não
-saberá nada sobre eles** até o índice ser atualizado.
-
-**Como reindexar:**
+**v1 — rebuild completo:**
 1. Delete `data/cache/indice_rag.pkl`
-2. Abra e reexecute o `03_RAG/03_rag_basico.ipynb` do início
-3. O novo índice será gerado (~67s) e o assistente passa a conhecer os novos módulos
+2. Reexecute `03_RAG/03_rag_basico.ipynb` (~67s)
+3. Reinicie o Flask
+
+**v2 / v3 — atualização incremental** (sem reconstruir tudo):
+```python
+# No 04_rag_avancado_chromadb.ipynb ou 04_rag_avancado_langchain.ipynb
+atualizar_modulo(PROJETO_BASE, 'EAI_09')   # reindexará apenas o EAI_09 (~5s)
+```
+
+**v2 / v3 — rebuild completo:**
+```python
+resetar_banco(confirmar=True)   # apaga tudo e reconstrói (~110s)
+```
 
 ---
 
 ## Integração com o curso
 
-| Componente | Origem |
-|---|---|
-| Índice FAISS | `03_RAG/03_rag_basico.ipynb` |
-| Modelo de embedding | `all-MiniLM-L6-v2` (384 dim) |
-| LLM Provider | `shared/llm_factory.py` (DeepSeek via .env) |
-| Histórico global | `data/memoria/historico_global.json` |
+| Componente | v1 (FAISS) | v2 (ChromaDB) | v3 (LangChain) |
+|---|---|---|---|
+| Banco vetorial | `data/cache/indice_rag.pkl` | `data/chroma_db/` | `data/chroma_db/` (mesmo) |
+| Gerado por | `03_rag_basico.ipynb` | `04_rag_avancado_chromadb.ipynb` | `04_rag_avancado_langchain.ipynb` (ou v2) |
+| Chunks | 1.553 de 26 arquivos | 1.763 de 33 arquivos | 1.763 de 33 arquivos |
+| Embedding | `SentenceTransformer` direto | `SentenceTransformer` direto | `HuggingFaceEmbeddings` (LangChain) |
+| Query expansion | — | Sim (openai direto) | Sim (LCEL chain) |
+| LLM | `openai.OpenAI()` direto | `openai.OpenAI()` direto | `ChatOpenAI` (LangChain) |
+| Reindexação | Rebuild completo | Upsert incremental | Upsert incremental |
+| Histórico | `historico_global.json` | `historico_global.json` | `historico_global.json` |
 
 ---
 
