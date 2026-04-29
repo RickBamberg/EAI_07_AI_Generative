@@ -1,0 +1,12 @@
+[
+  {
+    "role": "user",
+    "content": "Qual a acuracia do projeto classificação de arte",
+    "timestamp": "16:49"
+  },
+  {
+    "role": "assistant",
+    "content": "Não encontrei nos contextos recuperados uma informação específica sobre a acurácia do projeto de classificação de arte. \n\nNo entanto, com base na estrutura do curso, esse projeto de **classificação de arte** (com a estrutura de diretórios `WikiArt/` com pastas como `Abstract_Expressionism/`, `Baroque/`, etc.) pertence ao **EAI_03 — Deep Learning**, provavelmente utilizando redes neurais convolucionais (CNN) ou transfer learning para classificar imagens de pinturas por estilo artístico.\n\nPara saber a acurácia desse projeto, sugiro:\n1. **Revisar o notebook específico** do EAI_03 que implementa esse projeto de classificação de arte\n2. **Verificar a seção de resultados/avaliação** no final do notebook, onde normalmente são reportadas métricas como acurácia, matriz de confusão e F1-score\n\nSe você tiver acesso ao notebook do projeto, posso te ajudar a interpretar os resultados. Caso contrário, recomendo perguntar diretamente ao Carlos ou verificar os materiais do módulo EAI_03.",
+    "timestamp": "16:49"
+  }
+]

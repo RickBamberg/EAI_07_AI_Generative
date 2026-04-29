@@ -56,8 +56,8 @@ _LLM_MODEL = os.getenv('LLM_MODEL', 'deepseek-chat')
 
 # ── Caminhos ──────────────────────────────────────────────────────────────
 _PROJETO_BASE = Path(os.getenv('PROJETO_BASE', str(_HERE.parent.parent.parent)))
-_CHROMA_PATH  = _HERE.parent.parent.parent / 'data' / 'chroma_db'   # gerado pelo notebook v2
-_MEMORIA_PATH = _HERE / 'data' / 'historico_global.json'
+_CHROMA_PATH  = _HERE.parent / 'data' / 'chroma_db'  
+_MEMORIA_PATH  = _HERE.parent / 'data' / 'historico' / 'v2_historico_global.json'
 _MEMORIA_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 _COLLECTION_NAME = 'agent_contexts'

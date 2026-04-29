@@ -44,8 +44,8 @@ _LLM_MODEL = os.getenv('LLM_MODEL', 'deepseek-chat')
 
 # ── Caminhos ──────────────────────────────────────────────────────────────
 _PROJETO_BASE  = Path(os.getenv('PROJETO_BASE', str(_HERE.parent.parent.parent)))
-_CACHE_RAG     = _HERE.parent.parent / 'data' / 'cache' / 'indice_rag.pkl'
-_MEMORIA_PATH  = _HERE / 'data' / 'historico_global.json'
+_CACHE_RAG     = _HERE.parent / 'data' / 'cache' / 'indice_rag.pkl'
+_MEMORIA_PATH  = _HERE.parent / 'data' / 'historico' / 'v1_historico_global.json'
 _MEMORIA_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 # ── Embedding + Índice (pré-carregados em background thread) ─────────────

@@ -1,0 +1,31 @@
+# ============================================================
+# EAI_07_AI_Generative — Dependências compartilhadas
+# Instale UMA VEZ na raiz do módulo:
+#   pip install -r shared/requirements.txt
+# ============================================================
+
+# ── LLM SDKs ─────────────────────────────────────────────────
+# DeepSeek, OpenAI e Ollama usam o mesmo SDK
+openai>=1.30.0
+# Anthropic — instale só se usar LLM_PROVIDER=anthropic
+anthropic>=0.25.0
+
+# ── Ambiente ─────────────────────────────────────────────────
+python-dotenv>=1.0.0
+
+# ── RAG: Embeddings e Vectorstore ────────────────────────────
+sentence-transformers>=2.7.0
+faiss-cpu>=1.8.0
+numpy>=1.26.0
+
+# ── Processamento de texto ───────────────────────────────────
+tiktoken>=0.7.0
+nbformat>=5.10.0
+
+# ── Notebooks ────────────────────────────────────────────────
+jupyter>=1.0.0
+ipykernel>=6.29.0
+
+# ── Utilitários ──────────────────────────────────────────────
+pyyaml>=6.0.1
+tqdm>=4.66.0

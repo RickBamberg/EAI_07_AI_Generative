@@ -1,0 +1,42 @@
+[
+  {
+    "role": "user",
+    "content": "qual a acuracia do projeto de classificação de artes",
+    "timestamp": "16:56"
+  },
+  {
+    "role": "assistant",
+    "content": "Com base no contexto técnico recuperado do **EAI_03 — Deep Learning**, **não há informação explícita sobre a acurácia final** do projeto de classificação de estilos artísticos (WikiArt).\n\nO que o contexto fornece é:\n\n- **Estrutura do dataset**: 7 classes (estilos artísticos) organizadas em pastas.\n- **Fonte**: Kaggle — Painter by Numbers.\n- **Confusões mais comuns**: Baroque vs Impressionism (19 erros), Expressionism vs Abstract_Expressionism (12 erros), Cubism vs Analytical_Cubism (8 erros).\n- **Análise pendente**: Sugestões como Grad-CAM, análise por artista e clustering.\n\n**Conclusão**: O valor da acurácia não está presente nos trechos recuperados. Para obtê-lo, seria necessário consultar diretamente o notebook do projeto ou o relatório de treinamento do modelo.",
+    "timestamp": "16:56"
+  },
+  {
+    "role": "user",
+    "content": "Qual projeto de deep learning classificou obras de arte?",
+    "timestamp": "16:59"
+  },
+  {
+    "role": "assistant",
+    "content": "O projeto de **Deep Learning** que classificou obras de arte está no **EAI_03 — Deep Learning** e utilizou **Transfer Learning** com a arquitetura **MobileNetV2** (pré-treinada no ImageNet) com fine-tuning.\n\n**Detalhes técnicos do projeto:**\n\n- **Dataset**: WikiArt — *Painter by Numbers* (Kaggle)\n- **Classes**: 7 estilos artísticos (Abstract Expressionism, Analytical Cubism, Art Nouveau Modern, Baroque, Cubism, Expressionism, Impressionism)\n- **Acurácia**: ~65% (considerada esperada para um problema complexo de classificação de estilos artísticos)\n- **Deployment**: Aplicação web com Flask para upload de imagens\n- **Análise de erros**: Confusões comuns identificadas (ex: Baroque vs Impressionism, Expressionism vs Abstract Expressionism)\n\n**Principais desafios do problema:**\n- Alta similaridade visual entre estilos (ex: Cubism vs Analytical Cubism)\n- Variação intra-classe significativa dentro de um mesmo estilo\n- Complexidade inerente à classificação de estilos artísticos (subjetividade e sobreposição de características)\n\nO projeto incluiu análise profunda de erros e sugestões de melhoria como Grad-CAM para visualização de features e clustering de estilos similares.",
+    "timestamp": "16:59"
+  },
+  {
+    "role": "user",
+    "content": "Qual foi a acurácia desse projeto?",
+    "timestamp": "16:59"
+  },
+  {
+    "role": "assistant",
+    "content": "Com base no contexto técnico recuperado, a acurácia do projeto de classificação de estilos artísticos foi de **~65%**.\n\n**Detalhes do contexto:**\n- **Fonte**: EAI_03 — Deep Learning (Transfer Learning com MobileNetV2)\n- **Dataset**: WikiArt — *Painter by Numbers* (6-7 estilos artísticos)\n- **Arquitetura**: MobileNetV2 pré-treinada no ImageNet com fine-tuning\n- **Acurácia**: ~65% (considerada competitiva para o problema, dado que a tarefa é subjetiva e os estilos têm sobreposição visual significativa)\n\n**Por que 65% é aceitável?**\nConforme o FAQ técnico do projeto:\n- A tarefa é subjetiva e complexa — estilos artísticos têm sobreposição visual\n- Sem contexto histórico (artista, período, técnica), a decisão é puramente visual\n- 65% é um resultado competitivo para este problema específico\n\n**Sugestões de melhoria** (presentes no contexto):\n1. Fine-tuning mais agressivo (descongelar mais camadas da base)\n2. Ensemble de modelos (MobileNetV2 + EfficientNet + ResNet)\n3. Aumentar dataset (mais estilos, mais imagens por estilo)\n4. Adicionar metadados (artista, período, técnica)",
+    "timestamp": "16:59"
+  },
+  {
+    "role": "user",
+    "content": "Qual o algoritmo que e usado no projeto de reconhecimento facial ?",
+    "timestamp": "12:15"
+  },
+  {
+    "role": "assistant",
+    "content": "Com base no contexto técnico recuperado do **EAI_06 — Visão Computacional**, o projeto de reconhecimento facial utiliza o seguinte pipeline de algoritmos:\n\n**Stack completo:**\n1. **Detecção facial**: OpenCV DNN (modelo Caffe pré-treinado)\n2. **Extração de embeddings**: DeepFace com backbone **FaceNet** (rede siamesa que gera embeddings de 128 dimensões)\n3. **Reconhecimento/Comparação**: Scipy (distância euclidiana/cosseno entre embeddings)\n\n**Fluxo do algoritmo:**\n```\nCaptura (webcam/upload) → OpenCV DNN (detecção) → FaceNet (embedding) → Scipy (comparação) → Resultado\n```\n\n**Performance reportada:**\n- **Acurácia**: 97-99%\n- **FPS**: ~5-10 FPS (em CPU)\n\n**Diferenciais do projeto:**\n- Interface web completa com Flask\n- Pipeline automatizado (captura → detecção → embedding → reconhecimento)\n- Sistema end-to-end em tempo real",
+    "timestamp": "12:15"
+  }
+]
