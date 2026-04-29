@@ -3,37 +3,77 @@
 **Projeto de** EAI_07_AI_Generative / 06_Projetos_Reais  
 **Ambiente:** `eai07` (Python 3.11)
 
-Aplicação Flask com interface de chat que responde perguntas sobre os módulos
+Aplicação com interface de chat que responde perguntas sobre os módulos
 EAI_01 a EAI_08 usando RAG semântico sobre os `AGENT_CONTEXT.md` do curso.
+Disponível em dois servidores (**Flask** e **FastAPI**) e três versões de backend RAG,
+com suporte a execução local e via **Docker**.
 
 ---
 
-## Versões disponíveis
+## Versões de backend RAG
 
-O projeto possui três versões de backend RAG, todas com a mesma interface Flask e o mesmo `app.py`:
-
-| Versão | Backend | Banco | Chunks | Query Expansion |
-|---|---|---|---|---|
-| `v1` | FAISS + pkl | `data/cache/indice_rag.pkl` | 1.553 | Não |
-| `v2` | ChromaDB puro | `data/chroma_db/` | 1.763 | Sim |
-| `v3` | LangChain 1.x | `data/chroma_db/` (mesmo da v2) | 1.763 | Sim |
+| Versão | Backend       | Banco                           | Chunks | Query Expansion |  
+|--------|---------------|---------------------------------|--------|-----------------|   
+|  `v1`  | FAISS + pkl   | `data/cache/indice_rag.pkl`     |  1.553 | Não             |  
+|  `v2`  | ChromaDB puro | `data/chroma_db/`               |  1.763 | Sim             |  
+|  `v3`  | LangChain 1.x | `data/chroma_db/` (mesmo da v2) |  1.763 | Sim             |  
 
 > **v3 não requer reindexação** se a v2 já foi executada — o banco é compartilhado.
 
 ---
 
+## Servidores disponíveis
+
+| Arquivo  | Framework | Porta | Interface                          |  
+|----------|-----------|-------|------------------------------------|  
+| `app.py` | Flask     | 5000  | Chat HTML (`templates/index.html`) |  
+| `api.py` | FastAPI   | 8000  | REST JSON + Swagger (`/docs`)      | 
+
+Ambos importam o mesmo `assistente.py` (v1, v2 ou v3) e expõem as mesmas rotas:
+`POST /chat`, `POST /limpar`, `GET /status`.
+
+---
+
+## Estrutura
+
+```
+Assistente_Tecnico_IA/
+├── app.py                     ← Servidor Flask (interface HTML)
+├── api.py                     ← Servidor FastAPI (REST + Swagger)
+├── Dockerfile                 ← Imagem única para Flask e FastAPI
+├── docker-compose.yml         ← Profiles: flask (5000) | fastapi (8000)
+├── requirements.txt           ← Dependências Python
+├── templates/
+│   └── index.html             ← Interface de chat dark mode
+├── data/
+│   └── historico_global.json  ← Histórico persistido (criado automaticamente)
+├── v1/assistente.py           ← Núcleo v1: FAISS + pkl
+├── v2/assistente.py           ← Núcleo v2: ChromaDB puro
+├── v3/assistente.py           ← Núcleo v3: LangChain 1.x / LCEL
+├── AGENT_CONTEXT.md
+└── README.md
+```
+
+---
+
 ## Pré-requisitos
 
-1. Ambiente `eai07` ativo
-2. **Índice RAG gerado** para a versão escolhida:
+1. Ambiente `eai07` ativo (ou Docker instalado para execução containerizada)
+2. **Índice RAG gerado** para a versão de backend escolhida:
    - v1 → execute `03_RAG/03_rag_basico.ipynb` → gera `data/cache/indice_rag.pkl`
    - v2 → execute `03_RAG/04_rag_avancado_chromadb.ipynb` → gera `data/chroma_db/`
-   - v3 → mesmo banco da v2 (ou execute `03_RAG/04_rag_avancado_langchain.ipynb`)
-3. Dependências instaladas:
+   - v3 → mesmo banco da v2 (ou `03_RAG/04_rag_avancado_langchain.ipynb`)
+3. `.env` configurado na raiz do projeto com `DEEPSEEK_API_KEY` e `LLM_MODEL`
+
+---
+
+## Execução local
+
+### 1. Instalar dependências
 
 ```bash
 conda activate eai07
-pip install flask
+pip install flask fastapi uvicorn
 
 # v2 — ChromaDB puro
 pip install chromadb
@@ -42,46 +82,127 @@ pip install chromadb
 pip install langchain langchain-community langchain-chroma langchain-openai langchain-huggingface
 ```
 
----
+### 2. Escolher a versão de backend
 
-## Como executar
-
-O `app.py` fica na raiz do projeto. Antes de iniciar, edite a linha de import
-para apontar para a versão desejada:
+Edite a linha de import em `app.py` **e** em `api.py`:
 
 ```python
-# app.py — escolha uma linha e comente as outras:
+# Escolha uma linha e comente as outras:
 from v1.assistente import responder, limpar_historico, _get_indice, _pronto  # FAISS + pkl
 from v2.assistente import responder, limpar_historico, _get_indice, _pronto  # ChromaDB
 from v3.assistente import responder, limpar_historico, _get_indice, _pronto  # LangChain
 ```
 
+### 3. Iniciar o servidor
+
 ```bash
 cd EAI_07_AI_Generative/06_Projetos_Reais/Assistente_Tecnico_IA
-python app.py
-```
 
-Acesse: **http://localhost:5000**
+# Flask — interface HTML em localhost:5000
+python app.py
+
+# FastAPI — REST + Swagger em localhost:8000
+uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+```
 
 ---
 
-## Estrutura
+## Execução com Docker
 
+### Build da imagem
+
+```bash
+cd EAI_07_AI_Generative/06_Projetos_Reais/Assistente_Tecnico_IA
+docker compose build
 ```
-Assistente_Tecnico_IA/
-├── app.py                     ← Flask: rotas / /chat /limpar /status (idêntico nas 3 versões)
-├── templates/
-│   └── index.html             ← Interface de chat com painel de fontes (idêntica nas 3 versões)
-├── data/
-│   └── historico_global.json  ← Histórico persistido (criado automaticamente)
-├── v1/
-│   └── assistente.py          ← Núcleo v1: RAG com FAISS + pkl
-├── v2/
-│   └── assistente.py          ← Núcleo v2: RAG com ChromaDB puro
-├── v3/
-│   └── assistente.py          ← Núcleo v3: RAG com LangChain 1.x / LCEL
-├── AGENT_CONTEXT.md
-└── README.md
+
+### Subir o servidor desejado
+
+```bash
+# Flask — acesse http://localhost:5000
+docker compose --profile flask up
+
+# FastAPI — acesse http://localhost:8000  |  Swagger: http://localhost:8000/docs
+docker compose --profile fastapi up
+```
+
+### Volumes montados automaticamente
+
+| Volume local | Container | Descrição |
+|---|---|---|
+| `./data` | `/app/data` | Histórico e banco ChromaDB persistidos fora do container |
+| `./.env` | `/app/.env` | Credenciais e configurações (nunca incluídas na imagem) |
+
+> O banco `data/chroma_db/` e o histórico `data/historico_global.json` sobrevivem
+> ao `docker compose down` porque estão no volume local `./data`.
+
+### Parar o container
+
+```bash
+docker compose --profile flask down    # ou --profile fastapi
+```
+
+---
+
+## API — FastAPI (`api.py`)
+
+A FastAPI expõe a mesma lógica do Flask em formato REST com validação Pydantic
+e documentação interativa automática.
+
+### Rotas
+
+| Rota      | Método | Descrição                                                |  
+|-----------|--------|----------------------------------------------------------|  
+| `/`       | GET    | Redireciona para `/docs`                                 |  
+| `/chat`   | POST   | Processa pergunta, retorna resposta + fontes + histórico |  
+| `/limpar` | POST   | Apaga o histórico global                                 |  
+| `/status` | GET    | Status do servidor e contagem de chunks RAG              |  
+| `/docs`   | GET    | Swagger UI interativo                                    |  
+| `/redoc`  | GET    | Documentação ReDoc                                       |  
+
+### Exemplo de chamada
+
+```bash
+curl -X POST http://localhost:8000/chat \
+     -H "Content-Type: application/json" \
+     -d '{"pergunta": "Como funciona o RAG no EAI_07?"}'
+```
+
+```json
+{
+  "resposta": "O RAG no EAI_07 ...",
+  "fontes": [
+    {
+      "modulo": "EAI_07_AI_Generative",
+      "titulo": "Busca semântica",
+      "score": 0.812,
+      "arquivo": "EAI_07.../AGENT_CONTEXT.md",
+      "trecho": "..."
+    }
+  ],
+  "historico": [...],
+  "timestamp": "14:32"
+}
+```
+
+### Schemas Pydantic
+
+```python
+class PerguntaRequest(BaseModel):
+    pergunta: str   # min_length=1
+
+class FonteSchema(BaseModel):
+    modulo: str
+    titulo: str
+    score: float
+    arquivo: str
+    trecho: str
+
+class ChatResponse(BaseModel):
+    resposta: str
+    fontes: list[FonteSchema]
+    historico: list[dict]
+    timestamp: str
 ```
 
 ---
@@ -89,96 +210,53 @@ Assistente_Tecnico_IA/
 ## Arquitetura
 
 ```
-POST /chat
-    │
-    ▼
-assistente.responder(pergunta)          ← mesma assinatura nas 3 versões
-    │
-    ├── _precisa_rag()                  ← perguntas gerais não usam RAG (v2 e v3)
-    │
-    ├── _expandir_query()               ← query expansion com histórico (v2 e v3)
-    │     v2: openai.OpenAI().chat.completions.create()
-    │     v3: PromptTemplate | ChatOpenAI | StrOutputParser  (LCEL)
-    │
-    ├── buscar_rag()
-    │     v1: FAISS (indice_rag.pkl)    — 1.553 chunks, 26 arquivos
-    │     v2: ChromaDB collection.query()  — 1.763 chunks, 33 arquivos
-    │     v3: Chroma.similarity_search_with_score()  — mesmo banco da v2
-    │
-    ├── _carregar_historico()           ← últimas 20 msgs do historico_global.json
-    │
-    ├── LLM com system + histórico + contexto RAG
-    │     v2: openai.OpenAI().chat.completions.create()
-    │     v3: ChatPromptTemplate | ChatOpenAI | StrOutputParser  (LCEL)
-    │
-    └── _salvar_historico()
-    │
-    └── retorna {resposta, fontes, historico, timestamp}
+Cliente (browser / curl)
+        │
+        ├── porta 5000 → app.py (Flask)    → templates/index.html
+        └── porta 8000 → api.py (FastAPI)  → JSON + /docs
+                │
+                └── assistente.responder(pergunta)   ← mesma função nas 3 versões
+                        │
+                        ├── _precisa_rag()
+                        ├── _expandir_query()         ← LCEL (v3) ou OpenAI direto (v2)
+                        ├── buscar_rag()              ← FAISS (v1) | ChromaDB (v2) | LangChain (v3)
+                        ├── _carregar_historico()
+                        ├── LLM (system + histórico + contexto RAG)
+                        └── _salvar_historico()
 ```
 
 ---
 
-## O que mudou da v2 para a v3
+## Vantagens FastAPI vs Flask
 
-A v3 usa **LangChain 1.x** no lugar das chamadas diretas ao ChromaDB e OpenAI.
-O banco em disco, a lógica de busca e a interface pública são idênticos.
-
-| Componente | v2 (ChromaDB puro) | v3 (LangChain 1.x) |
-|---|---|---|
-| Vectorstore | `chromadb.PersistentClient` + `collection` | `Chroma(persist_directory=...)` |
-| Embeddings | `SentenceTransformer.encode()` manual | `HuggingFaceEmbeddings` (interno) |
-| LLM | `openai.OpenAI().chat.completions.create()` | `ChatOpenAI` + LCEL chains |
-| Query Expansion | chamada direta ao LLM | `PromptTemplate \| llm \| StrOutputParser` |
-| Busca | `collection.query(query_embeddings=...)` | `vs.similarity_search_with_score(query, ...)` |
-| Histórico no LLM | lista de dicts `{role, content}` | `[HumanMessage \| AIMessage]` |
-| `_get_modelo_emb()` | presente | removida (desnecessária) |
-| Banco em disco | `data/chroma_db/` | **mesmo** `data/chroma_db/` |
-
-> O `app.py` **não precisa mudar** além da linha de import — a interface pública é idêntica.
-
----
-
-## LangChain 1.x — módulos corretos
-
-A v3 usa LangChain na versão **1.x**, que removeu os módulos legados da versão 0.x.
-Se você já conhece LangChain 0.x, atente para as mudanças:
-
-| Removido (0.x) | Correto (1.x) |
-|---|---|
-| `langchain.memory.ConversationBufferWindowMemory` | `langchain_community.chat_message_histories.ChatMessageHistory` |
-| `langchain.chains.ConversationalRetrievalChain` | LCEL: `prompt \| llm \| StrOutputParser()` |
-| `langchain.prompts` | `langchain_core.prompts` |
-| `langchain.schema` (mensagens) | `langchain_core.messages` |
-
----
-
-## Interface
-
-- **Chat** à esquerda — mensagens com renderização Markdown (código, listas, bold)
-- **Painel lateral** à direita — chunks RAG recuperados com módulo, título e score
-  - Clique em qualquer chunk para expandir e ver o trecho completo
-- **Perguntas rápidas** na tela inicial para começar a conversa
-- **Limpar histórico** no rodapé do painel apaga o `historico_global.json`
-- **Polling de status** — o input fica desabilitado até `_pronto=True` (carregamento em background)
+| Aspecto      | Flask (`app.py`)          | FastAPI (`api.py`)                         |  
+|--------------|---------------------------|--------------------------------------------|  
+| Interface    | Chat HTML completo        | REST JSON + Swagger                        |  
+| Validação    | Manual                    | Pydantic automático                        |  
+| Documentação | —                         | `/docs` e `/redoc` gerados automaticamente |  
+| Async        | Não nativo                | Suporte nativo a `async/await`             |  
+| Erros        | Customizado               | `HTTPException` padronizado                |  
+| Uso ideal    | Demo com interface visual | Integração com outros sistemas             |  
 
 ---
 
 ## Caminhos — nada precisa ser copiado
 
 Cada `assistente.py` resolve os caminhos automaticamente subindo a hierarquia
-até encontrar o `shared/llm_factory.py`:
+até encontrar o `shared/llm_factory.py`. No Docker, o `WORKDIR /app` é a raiz do projeto
+e os volumes montam `data/` e `.env` diretamente lá.
 
 ```
-EAI_07_AI_Generative/                    ← detectado automaticamente
+EAI_07_AI_Generative/                    ← detectado automaticamente (local)
 ├── shared/llm_factory.py
 ├── data/
 │   ├── cache/indice_rag.pkl             ← v1
-│   └── chroma_db/                       ← v2 e v3 (banco compartilhado)
+│   └── chroma_db/                       ← v2 e v3 (compartilhado)
 └── 06_Projetos_Reais/
     └── Assistente_Tecnico_IA/
-        ├── v1/assistente.py             ← _HERE (sobe 3 níveis)
-        ├── v2/assistente.py             ← _HERE (sobe 3 níveis)
-        └── v3/assistente.py             ← _HERE (sobe 3 níveis)
+        ├── app.py  /  api.py
+        ├── v1/ v2/ v3/
+        └── data/                        ← histórico local do projeto
 ```
 
 ---
@@ -188,41 +266,28 @@ EAI_07_AI_Generative/                    ← detectado automaticamente
 **v1 — rebuild completo:**
 1. Delete `data/cache/indice_rag.pkl`
 2. Reexecute `03_RAG/03_rag_basico.ipynb` (~67s)
-3. Reinicie o Flask
+3. Reinicie o servidor
 
-**v2 / v3 — atualização incremental** (sem reconstruir tudo):
+**v2 / v3 — atualização incremental:**
 ```python
-# No 04_rag_avancado_chromadb.ipynb ou 04_rag_avancado_langchain.ipynb
-atualizar_modulo(PROJETO_BASE, 'EAI_09')   # reindexará apenas o EAI_09 (~5s)
+# No notebook 04_rag_avancado_chromadb.ipynb ou 04_rag_avancado_langchain.ipynb
+atualizar_modulo(PROJETO_BASE, 'EAI_09')   # só o módulo alterado (~5s)
 ```
 
 **v2 / v3 — rebuild completo:**
 ```python
-resetar_banco(confirmar=True)   # apaga tudo e reconstrói (~110s)
+resetar_banco(confirmar=True)   # apaga e reconstrói (~110s)
 ```
 
 ---
 
 ## Integração com o curso
 
-| Componente | v1 (FAISS) | v2 (ChromaDB) | v3 (LangChain) |
-|---|---|---|---|
-| Banco vetorial | `data/cache/indice_rag.pkl` | `data/chroma_db/` | `data/chroma_db/` (mesmo) |
-| Gerado por | `03_rag_basico.ipynb` | `04_rag_avancado_chromadb.ipynb` | `04_rag_avancado_langchain.ipynb` (ou v2) |
-| Chunks | 1.553 de 26 arquivos | 1.763 de 33 arquivos | 1.763 de 33 arquivos |
-| Embedding | `SentenceTransformer` direto | `SentenceTransformer` direto | `HuggingFaceEmbeddings` (LangChain) |
-| Query expansion | — | Sim (openai direto) | Sim (LCEL chain) |
-| LLM | `openai.OpenAI()` direto | `openai.OpenAI()` direto | `ChatOpenAI` (LangChain) |
-| Reindexação | Rebuild completo | Upsert incremental | Upsert incremental |
-| Histórico | `historico_global.json` | `historico_global.json` | `historico_global.json` |
-
----
-
-## Rotas da API
-
-| Rota | Método | Descrição |
-|---|---|---|
-| `/` | GET | Interface de chat |
-| `/chat` | POST | `{pergunta: str}` → `{resposta, fontes, historico, timestamp}` |
-| `/limpar` | POST | Apaga o histórico global |
-| `/status` | GET | Status do servidor e contagem de chunks do índice |
+| Componente      | v1                    | v2                               | v3                                |
+|-----------------|-----------------------|----------------------------------|-----------------------------------|
+| Banco           | `indice_rag.pkl`      | `chroma_db/`                     | `chroma_db/` (mesmo)              |
+| Gerado por      | `03_rag_basico.ipynb` | `04_rag_avancado_chromadb.ipynb` | `04_rag_avancado_langchain.ipynb` |
+| Chunks          | 1.553 / 26 arquivos   | 1.763 / 33 arquivos              | 1.763 / 33 arquivos               |
+| Embedding       | `SentenceTransformer` | `SentenceTransformer`            | `HuggingFaceEmbeddings`           |
+| Query expansion | —                     | Sim                              | Sim (LCEL)                        |
+| Reindexação     | Rebuild completo      | Upsert incremental               | Upsert incremental                |

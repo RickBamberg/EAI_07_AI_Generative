@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  flask:
+    build: .
+    container_name: assistente_flask
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    command: python app.py
+    profiles: ["flask"]
+
+  fastapi:
+    build: .
+    container_name: assistente_fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    profiles: ["fastapi"]
